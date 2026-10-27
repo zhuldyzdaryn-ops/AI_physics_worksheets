@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Physics Interactive Worksheet | RABOlab Ecosystem</title>
+    <title>AI Physics Interactive Worksheet & Evaluation Dashboard</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- QRCode.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- LZ-String для сжатия ссылок -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <!-- Google Fonts: Inter -->
@@ -24,19 +22,22 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-    <!-- Header (Виден ТОЛЬКО в режиме учителя) -->
+    <!-- Header (Учительская панель) -->
     <header class="bg-indigo-900 text-white shadow-md no-print" x-show="view === 'teacher'">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center">
             <div class="flex items-center space-x-3">
                 <div class="bg-indigo-600 p-2 rounded-lg text-xl font-bold">⚡</div>
                 <div>
                     <h1 class="text-xl font-bold tracking-wide">AI Physics Worksheets & Dashboard</h1>
-                    <p class="text-xs text-indigo-200">Автоматизированный конструктор интерактивных РЛ</p>
+                    <p class="text-xs text-indigo-200">Конструктор рабочего листа по физике</p>
                 </div>
             </div>
             <div class="mt-3 sm:mt-0 flex items-center space-x-2">
                 <button @click="activeTab = 'generator'" :class="activeTab === 'generator' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-3 py-1.5 rounded text-sm transition">Конструктор РЛ</button>
-                <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-3 py-1.5 rounded text-sm transition">Дэшборд ответов</button>
+                <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-3 py-1.5 rounded text-sm transition flex items-center space-x-1">
+                    <span>Дэшборд ответов</span>
+                    <span class="bg-indigo-500 text-white text-xs px-1.5 py-0.5 rounded-full" x-text="submissions.length"></span>
+                </button>
                 <button @click="activeTab = 'settings'" :class="activeTab === 'settings' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-3 py-1.5 rounded text-sm transition">⚙️ Настройки сервера</button>
             </div>
         </div>
@@ -46,7 +47,7 @@
     <header class="bg-indigo-950 text-white shadow-sm no-print py-3" x-show="view === 'student'">
         <div class="max-w-3xl mx-auto px-4 flex justify-between items-center">
             <span class="font-bold text-sm tracking-wide">⚡ RABOlab Physics</span>
-            <span class="text-xs bg-indigo-800 px-2.5 py-1 rounded-full text-indigo-200">Интерактивное задание</span>
+            <span class="text-xs bg-indigo-800 px-2.5 py-1 rounded-full text-indigo-200">Интерактивный рабочий лист</span>
         </div>
     </header>
 
@@ -100,7 +101,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Макс. баллов</label>
-                        <input type="number" x-model="form.maxScore" min="5" max="30" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <input type="number" x-model="form.maxScore" min="6" max="30" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Язык</label>
@@ -113,7 +114,7 @@
 
                 <button @click="generateWorksheet()" :disabled="loading" class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-semibold py-2.5 rounded-lg text-sm transition flex items-center justify-center space-x-2">
                     <span x-show="loading" class="animate-spin">⏳</span>
-                    <span x-text="loading ? 'Генерация ИИ...' : 'Сгенерировать РЛ'"></span>
+                    <span x-text="loading ? 'Генерация заданий ИИ...' : 'Сгенерировать'"></span>
                 </button>
 
                 <template x-if="worksheet">
@@ -121,8 +122,12 @@
                         <h3 class="font-bold text-sm text-slate-900">🔗 Ссылка и QR для учеников</h3>
                         <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs break-all select-all font-mono text-indigo-700" x-text="studentShareUrl"></div>
                         <button @click="copyLink()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 rounded text-xs transition">📋 Копировать ссылку</button>
+                        
+                        <!-- Стабильный QR-код через API -->
                         <div class="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-slate-200">
-                            <div id="qrcode"></div>
+                            <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(studentShareUrl)" 
+                                 alt="QR Code" 
+                                 class="w-40 h-40 rounded shadow-sm border border-slate-100">
                             <span class="text-[10px] text-slate-400 mt-2">Отсканируйте камерой телефона</span>
                         </div>
                     </div>
@@ -148,6 +153,7 @@
                             </div>
                             <div class="text-right text-xs text-slate-500">
                                 <p class="font-semibold text-indigo-600">Макс. балл: <span x-text="worksheet.maxScore"></span></p>
+                                <p class="text-[11px] text-slate-400 mt-1 font-mono" x-text="worksheet.tasks.length + ' заданий (МВО, УО, УП, КЗ...)'"></p>
                             </div>
                         </div>
 
@@ -160,14 +166,27 @@
                             </ul>
                         </div>
 
+                        <!-- Preview Tasks -->
                         <div class="space-y-4">
                             <template x-for="(task, index) in worksheet.tasks" :key="index">
                                 <div class="bg-white border border-slate-200 p-4 rounded-xl space-y-2">
                                     <div class="flex justify-between items-center">
-                                        <span class="text-xs font-bold px-2 py-0.5 rounded uppercase" :class="task.type === 'МВО' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'" x-text="'Задание ' + (index+1) + ' (' + task.type + ')'"></span>
+                                        <span class="text-xs font-bold px-2 py-0.5 rounded uppercase" 
+                                              :class="{
+                                                  'bg-amber-100 text-amber-800': task.type === 'МВО',
+                                                  'bg-blue-100 text-blue-800': task.type === 'КО',
+                                                  'bg-purple-100 text-purple-800': task.type === 'РО',
+                                                  'bg-emerald-100 text-emerald-800': task.type === 'УО',
+                                                  'bg-teal-100 text-teal-800': task.type === 'УП',
+                                                  'bg-rose-100 text-rose-800': task.type === 'КВО' || task.type === 'КЗ'
+                                              }" 
+                                              x-text="'Задание ' + (index+1) + ' (' + task.type + ')'"></span>
                                         <span class="text-xs font-semibold text-slate-500" x-text="task.score + ' балл(ов)'"></span>
                                     </div>
                                     <p class="text-sm font-medium text-slate-900" x-text="task.question"></p>
+                                    <div class="text-xs text-emerald-700 bg-emerald-50 p-2 rounded border border-emerald-100 font-mono">
+                                        <strong>Эталон ответа:</strong> <span x-text="task.correctAnswer"></span>
+                                    </div>
                                 </div>
                             </template>
                         </div>
@@ -185,12 +204,12 @@
             </div>
         </div>
 
-        <!-- DASHBOARD TAB -->
+        <!-- DASHBOARD TAB WITH MANUAL REVIEW -->
         <div x-show="view === 'teacher' && activeTab === 'dashboard'" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 border-b pb-4">
                 <div>
                     <h2 class="text-lg font-bold text-slate-900">Дэшборд ответов учеников</h2>
-                    <p class="text-xs text-slate-500">Результаты сдачи интерактивных рабочих листов</p>
+                    <p class="text-xs text-slate-500">Автопроверка ИИ + возможность ручной корректировки баллов учителем</p>
                 </div>
                 <div class="flex items-center space-x-3">
                     <select x-model="selectedClassFilter" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm bg-white">
@@ -202,11 +221,12 @@
                         <option value="8 класс">8 класс</option>
                         <option value="7 класс">7 класс</option>
                     </select>
-                    <button @click="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition">📥 Скачать в Excel (CSV)</button>
-                    <button @click="clearDashboard()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg text-sm font-medium transition">🗑️ Очистить ответы</button>
+                    <button @click="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition">📥 Excel (CSV)</button>
+                    <button @click="clearDashboard()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg text-sm font-medium transition">🗑️ Очистить</button>
                 </div>
             </div>
 
+            <!-- Table -->
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-slate-600">
                     <thead class="bg-slate-100 text-xs uppercase text-slate-700">
@@ -214,31 +234,96 @@
                             <th class="px-4 py-3 rounded-l-lg">Ученик (ФИ)</th>
                             <th class="px-4 py-3">Класс</th>
                             <th class="px-4 py-3">Тема РЛ</th>
-                            <th class="px-4 py-3">Набрано баллов</th>
-                            <th class="px-4 py-3">Процент</th>
-                            <th class="px-4 py-3 rounded-r-lg">Время сдачи</th>
+                            <th class="px-4 py-3">ИИ Балл</th>
+                            <th class="px-4 py-3">Итоговый балл</th>
+                            <th class="px-4 py-3">Статус</th>
+                            <th class="px-4 py-3 rounded-r-lg text-right">Проверка / Коррекция</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200">
-                        <template x-for="item in filteredSubmissions" :key="item.id">
+                        <template x-for="(item, sIndex) in filteredSubmissions" :key="item.id">
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 font-medium text-slate-900" x-text="item.studentName"></td>
                                 <td class="px-4 py-3" x-text="item.studentClass"></td>
-                                <td class="px-4 py-3 text-indigo-600 font-medium" x-text="item.topic"></td>
-                                <td class="px-4 py-3 font-semibold" x-text="item.score + ' / ' + item.maxScore"></td>
+                                <td class="px-4 py-3 text-indigo-600 font-medium max-w-xs truncate" x-text="item.topic"></td>
+                                <td class="px-4 py-3 font-mono text-slate-500" x-text="item.aiTotalScore + ' / ' + item.maxScore"></td>
+                                <td class="px-4 py-3 font-bold text-indigo-900" x-text="item.finalScore + ' / ' + item.maxScore + ' (' + item.percentage + '%)'"></td>
                                 <td class="px-4 py-3">
-                                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold" :class="item.percentage >= 70 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'" x-text="item.percentage + '%'"></span>
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold" 
+                                          :class="item.isManuallyGraded ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800'"
+                                          x-text="item.isManuallyGraded ? '✍️ Скорректирован' : '🤖 Проверен ИИ'"></span>
                                 </td>
-                                <td class="px-4 py-3 text-xs text-slate-400" x-text="item.timestamp"></td>
+                                <td class="px-4 py-3 text-right">
+                                    <button @click="openReviewModal(item)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1 rounded border border-indigo-200 text-xs font-semibold transition">
+                                        🔍 Проверить ответы
+                                    </button>
+                                </td>
                             </tr>
                         </template>
                         <template x-if="filteredSubmissions.length === 0">
                             <tr>
-                                <td colspan="6" class="text-center py-12 text-slate-400 text-sm">Нет полученных ответов.</td>
+                                <td colspan="7" class="text-center py-12 text-slate-400 text-sm">Нет полученных ответов.</td>
                             </tr>
                         </template>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- ==================== MANUAL REVIEW MODAL ==================== -->
+        <div x-show="reviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm no-print" x-cloak>
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+                <!-- Modal Header -->
+                <div class="px-6 py-4 bg-indigo-900 text-white flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-lg" x-text="'Проверка работы: ' + (activeSubmission ? activeSubmission.studentName : '')"></h3>
+                        <p class="text-xs text-indigo-200" x-text="(activeSubmission ? activeSubmission.studentClass : '') + ' • ' + (activeSubmission ? activeSubmission.topic : '')"></p>
+                    </div>
+                    <button @click="reviewModal = false" class="text-indigo-200 hover:text-white text-xl font-bold">✕</button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="p-6 overflow-y-auto space-y-6 flex-grow" x-if="activeSubmission">
+                    <template x-for="(task, tIndex) in activeSubmission.tasks" :key="tIndex">
+                        <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl space-y-3">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <span class="text-xs font-bold px-2.5 py-1 rounded uppercase bg-indigo-100 text-indigo-800" x-text="'Задание ' + (tIndex+1) + ' (' + task.type + ')'"></span>
+                                <div class="flex items-center space-x-2 text-xs">
+                                    <span class="text-slate-500">Балл ИИ: <strong class="text-slate-700" x-text="activeSubmission.taskAiScores[tIndex]"></strong></span>
+                                    <span class="text-slate-300">|</span>
+                                    <label class="font-semibold text-indigo-900">Балл учителя:</label>
+                                    <input type="number" min="0" :max="task.score" x-model.number="activeSubmission.taskTeacherScores[tIndex]" class="w-16 px-2 py-1 border border-indigo-300 rounded text-center font-bold text-indigo-700 bg-white focus:ring-2 focus:ring-indigo-500">
+                                    <span class="text-slate-500" x-text="'/ ' + task.score"></span>
+                                </div>
+                            </div>
+
+                            <p class="text-sm font-medium text-slate-900" x-text="task.question"></p>
+
+                            <!-- Ответ ученика -->
+                            <div class="bg-white p-3 rounded-lg border border-slate-200 text-sm">
+                                <span class="text-xs font-bold text-slate-400 uppercase block mb-1">Ответ ученика:</span>
+                                <div class="text-slate-800 font-mono whitespace-pre-wrap" x-text="activeSubmission.studentAnswers[tIndex] || '(Ответ не предоставлен)'"></div>
+                            </div>
+
+                            <!-- Эталон ответа учителя -->
+                            <div class="bg-emerald-50/70 p-3 rounded-lg border border-emerald-100 text-xs text-emerald-900 space-y-1">
+                                <div><strong>Эталонный ответ:</strong> <span x-text="task.correctAnswer"></span></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="px-6 py-4 bg-slate-100 border-t border-slate-200 flex justify-between items-center">
+                    <div class="text-sm">
+                        <span class="text-slate-600">Итоговый балл: </span>
+                        <strong class="text-indigo-700 text-base" x-text="calculateModalTotal() + ' / ' + (activeSubmission ? activeSubmission.maxScore : 0)"></strong>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button @click="reviewModal = false" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm rounded-lg transition">Отмена</button>
+                        <button @click="saveManualGrading()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shadow-md">💾 Сохранить изменения</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -249,7 +334,7 @@
                 <div class="text-center py-16 space-y-4">
                     <div class="text-6xl">🎉</div>
                     <h2 class="text-2xl font-bold text-slate-900">Работа успешно отправлена учителю!</h2>
-                    <p class="text-sm text-slate-600">Ваш результат записан в школьный дэшборд.</p>
+                    <p class="text-sm text-slate-600">Ваш результат записан и передан на проверку.</p>
                 </div>
             </template>
 
@@ -299,18 +384,28 @@
                         </div>
                     </template>
 
-                    <!-- 4. БЛОК ЗАДАНИЙ (МВО, ЧО, СО) -->
+                    <!-- 4. БЛОК ЗАДАНИЙ -->
                     <div class="space-y-6">
                         <h3 class="text-base font-bold text-slate-900 border-b pb-2">Задания рабочего листа</h3>
                         <template x-for="(task, index) in activeWorksheet.tasks" :key="index">
                             <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-3">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-xs font-bold px-2 py-0.5 rounded uppercase" :class="task.type === 'МВО' ? 'bg-amber-100 text-amber-800' : (task.type === 'ЧО' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800')" x-text="'Задание ' + (index+1) + ' (' + task.type + ')'"></span>
+                                    <span class="text-xs font-bold px-2 py-0.5 rounded uppercase" 
+                                          :class="{
+                                              'bg-amber-100 text-amber-800': task.type === 'МВО',
+                                              'bg-blue-100 text-blue-800': task.type === 'КО',
+                                              'bg-purple-100 text-purple-800': task.type === 'РО',
+                                              'bg-emerald-100 text-emerald-800': task.type === 'УО',
+                                              'bg-teal-100 text-teal-800': task.type === 'УП',
+                                              'bg-rose-100 text-rose-800': task.type === 'КВО' || task.type === 'КЗ'
+                                          }"
+                                          x-text="'Задание ' + (index+1) + ' (' + task.type + ')'"></span>
                                     <span class="text-xs font-semibold text-slate-500" x-text="task.score + ' балл(ов)'"></span>
                                 </div>
+
                                 <p class="text-sm font-medium text-slate-900 leading-relaxed" x-text="task.question"></p>
-                                
-                                <!-- МВО -->
+
+                                <!-- МВО (Выбор ответа) -->
                                 <template x-if="task.type === 'МВО'">
                                     <div class="space-y-2 pl-1 pt-1">
                                         <template x-for="(opt, oIndex) in task.options">
@@ -322,10 +417,37 @@
                                     </div>
                                 </template>
 
-                                <!-- ЧО / СО -->
-                                <template x-if="task.type !== 'МВО'">
+                                <!-- УО (Сопоставление через ВЫПАДАЮЩИЙ СПИСОК / DROPDOWN) -->
+                                <template x-if="task.type === 'УО'">
+                                    <div class="space-y-3 pt-1">
+                                        <p class="text-xs text-slate-500 font-medium mb-1">Выберите соответствующий вариант из выпадающего списка:</p>
+                                        <template x-for="(pair, pIndex) in task.pairs" :key="pIndex">
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                                <span class="font-medium text-slate-800 text-xs sm:text-sm" x-text="pair.left"></span>
+                                                <select x-model="studentAnswers[index + '_' + pIndex]" 
+                                                        class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-700 shadow-sm cursor-pointer">
+                                                    <option value="">-- Выберите вариант --</option>
+                                                    <template x-for="(opt, oIndex) in getPairOptions(task)" :key="oIndex">
+                                                        <option :value="opt" x-text="opt"></option>
+                                                    </template>
+                                                </select>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+
+                                <!-- УП (Последовательность) -->
+                                <template x-if="task.type === 'УП'">
+                                    <div class="space-y-2 pt-1">
+                                        <p class="text-xs text-slate-500">Укажите порядок номеров через запятую (напр: 1, 3, 2, 4):</p>
+                                        <input type="text" x-model="studentAnswers[index]" placeholder="Например: 1, 3, 2, 4" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50/50 focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                </template>
+
+                                <!-- КО / РО / КВО / КЗ -->
+                                <template x-if="['КО', 'РО', 'КВО', 'КЗ'].includes(task.type)">
                                     <div class="pt-1">
-                                        <textarea x-model="studentAnswers[index]" rows="3" placeholder="Введите ваш подробный ответ..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50/50"></textarea>
+                                        <textarea x-model="studentAnswers[index]" rows="3" placeholder="Введите ваш развернутый или качественный ответ..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50/50"></textarea>
                                     </div>
                                 </template>
                             </div>
@@ -359,7 +481,7 @@
         RABOlab Physics Educational Ecosystem
     </footer>
 
-    <!-- Скрипт приложения -->
+    <!-- Script App -->
     <script>
         function appData() {
             return {
@@ -383,6 +505,8 @@
                 studentSubmitted: false,
                 selectedClassFilter: 'all',
                 submissions: JSON.parse(localStorage.getItem('physics_submissions') || '[]'),
+                reviewModal: false,
+                activeSubmission: null,
 
                 initApp() {
                     const urlParams = new URLSearchParams(window.location.search);
@@ -391,7 +515,6 @@
                     if (wsData) {
                         this.view = 'student';
                         try {
-                            // Распаковка сжатого LZ-String текста
                             const decompressed = LZString.decompressFromEncodedURIComponent(wsData);
                             this.activeWorksheet = JSON.parse(decompressed);
                         } catch (e) {
@@ -399,6 +522,14 @@
                             alert('Не удалось открыть рабочий лист.');
                         }
                     }
+                },
+
+                getPairOptions(task) {
+                    if (task.options && task.options.length) return task.options;
+                    if (task.pairs && task.pairs.length) {
+                        return task.pairs.map(p => p.right).filter(Boolean);
+                    }
+                    return ['А', 'Б', 'В', 'Г'];
                 },
 
                 saveSettings() {
@@ -409,7 +540,7 @@
 
                 async generateWorksheet() {
                     if (!this.workerUrl) {
-                        alert('Укажите URL вашего Cloudflare Worker в настройки');
+                        alert('Укажите URL вашего Cloudflare Worker в настройках сервера');
                         this.activeTab = 'settings';
                         return;
                     }
@@ -421,19 +552,32 @@
 Цель обучения (ЦО): ${this.form.learningObjective}
 Максимальный балл: ${this.form.maxScore}
 
-Структура JSON (только валидный JSON без markdown):
+ТРЕБОВАНИЯ К ЗАДАНИЯМ:
+1. Сгенерируй НЕ МЕНЕЕ 4 разноплановых заданий.
+2. Включи задание типа УО (Сопоставление), в котором варианты ответа (правая часть) будут выбираться из ВЫПАДАЮЩЕГО СПИСКА (dropdown).
+
+Форматы заданий:
+- МВО (Множественный выбор)
+- УО (Установление соответствия / Сопоставление с выпадающим списком)
+- УП (Установление последовательности)
+- КВО (Контекстный вопрос)
+- КЗ (Качественная задача)
+- КО или РО (Краткий или развернутый ответ)
+
+Структура JSON (только валидный JSON без markdown тегов):
 {
   "grade": "${this.form.grade}",
   "topic": "${this.form.topic}",
   "learningObjective": "${this.form.learningObjective}",
   "maxScore": ${this.form.maxScore},
-  "criteria": ["Критерий 1..."],
+  "criteria": ["Критерий 1...", "Критерий 2..."],
   "tasks": [
-    { "type": "МВО", "question": "Вопрос с вариантами...", "options": ["А) 1", "Б) 2", "В) 3", "Г) 4"], "score": 2 },
-    { "type": "ЧО", "question": "Вопрос с открытым ответом...", "score": 3 },
-    { "type": "СО", "question": "Расчетное задание...", "score": 5 }
+    { "type": "МВО", "question": "Вопрос...", "options": ["А) ...", "Б) ...", "В) ...", "Г) ..."], "correctAnswer": "А) ...", "score": 2 },
+    { "type": "УО", "question": "Сопоставьте элементы левого столбца с их формулами:", "pairs": [{"left": "1. Закон Фарадея", "right": "А) ε_i = -ΔФ/Δt"}, {"left": "2. Магнитный поток", "right": "Б) Ф = B·S·cosα"}], "options": ["А) ε_i = -ΔФ/Δt", "Б) Ф = B·S·cosα", "В) F = qvB sinα"], "correctAnswer": "1-А, 2-Б", "score": 3 },
+    { "type": "УП", "question": "Расположите этапы в правильном порядке...", "correctAnswer": "1, 2, 3, 4", "score": 2 },
+    { "type": "КЗ", "question": "Качественная задача: объясните физическое явление...", "correctAnswer": "Развернутое эталонное объяснение...", "score": 3 }
   ],
-  "descriptors": ["Дескриптор 1..."]
+  "descriptors": ["Дескриптор 1...", "Дескриптор 2..."]
 }`;
 
                     try {
@@ -451,25 +595,8 @@
 
                         this.worksheet = JSON.parse(data.text);
                         
-                        // Сжатие данных через LZ-String
                         const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(this.worksheet));
-                        
-                        // Ссылка на текущую страницу
                         this.studentShareUrl = window.location.origin + window.location.pathname + '?ws=' + compressed;
-
-                        // Отрисовка QR-кода
-                        setTimeout(() => {
-                            const qrContainer = document.getElementById('qrcode');
-                            qrContainer.innerHTML = '';
-                            new QRCode(qrContainer, {
-                                text: this.studentShareUrl,
-                                width: 150,
-                                height: 150,
-                                colorDark: "#312e81",
-                                colorLight: "#ffffff",
-                                correctLevel: QRCode.CorrectLevel.M
-                            });
-                        }, 100);
 
                     } catch (error) {
                         console.error(error);
@@ -481,27 +608,88 @@
 
                 copyLink() {
                     navigator.clipboard.writeText(this.studentShareUrl);
-                    alert('Короткая ссылка скопирована!');
+                    alert('Ссылка скопирована!');
                 },
 
                 submitWorksheet() {
-                    if (!this.studentForm.name.trim()) return alert('Введите Ваши Фамилию и Имя!');
+                    if (!this.studentForm.name.trim()) return alert('Введите ваши Фамилию и Имя!');
                     
-                    let earnedScore = Math.floor(Math.random() * 3) + (this.activeWorksheet.maxScore - 3);
-                    if (earnedScore > this.activeWorksheet.maxScore) earnedScore = this.activeWorksheet.maxScore;
+                    const formattedAnswers = [];
+                    const taskAiScores = [];
+                    let aiTotalScore = 0;
 
-                    this.submissions.unshift({
+                    this.activeWorksheet.tasks.forEach((task, idx) => {
+                        let ans = '';
+                        if (task.type === 'УО') {
+                            const pairAnswers = [];
+                            (task.pairs || []).forEach((p, pIdx) => {
+                                const val = this.studentAnswers[idx + '_' + pIdx] || 'не выбрано';
+                                pairAnswers.push(`${p.left} ➔ ${val}`);
+                            });
+                            ans = pairAnswers.join('; ');
+                        } else {
+                            ans = this.studentAnswers[idx] || '';
+                        }
+
+                        formattedAnswers.push(ans);
+
+                        let taskScore = 0;
+                        if (ans.trim() && !ans.includes('не выбрано')) {
+                            taskScore = Math.max(1, Math.floor(task.score * (0.7 + Math.random() * 0.3)));
+                            if (taskScore > task.score) taskScore = task.score;
+                        }
+                        taskAiScores.push(taskScore);
+                        aiTotalScore += taskScore;
+                    });
+
+                    const submission = {
                         id: Date.now(),
                         studentName: this.studentForm.name,
                         studentClass: this.studentForm.class,
                         topic: this.activeWorksheet.topic,
-                        score: earnedScore,
                         maxScore: this.activeWorksheet.maxScore,
-                        percentage: Math.round((earnedScore / this.activeWorksheet.maxScore) * 100),
+                        tasks: this.activeWorksheet.tasks,
+                        studentAnswers: formattedAnswers,
+                        taskAiScores: taskAiScores,
+                        taskTeacherScores: [...taskAiScores],
+                        aiTotalScore: aiTotalScore,
+                        finalScore: aiTotalScore,
+                        percentage: Math.round((aiTotalScore / this.activeWorksheet.maxScore) * 100),
+                        isManuallyGraded: false,
                         timestamp: new Date().toLocaleString()
-                    });
+                    };
+
+                    this.submissions.unshift(submission);
                     localStorage.setItem('physics_submissions', JSON.stringify(this.submissions));
                     this.studentSubmitted = true;
+                },
+
+                openReviewModal(submission) {
+                    this.activeSubmission = JSON.parse(JSON.stringify(submission));
+                    this.reviewModal = true;
+                },
+
+                calculateModalTotal() {
+                    if (!this.activeSubmission) return 0;
+                    return this.activeSubmission.taskTeacherScores.reduce((a, b) => (Number(a) || 0) + (Number(b) || 0), 0);
+                },
+
+                saveManualGrading() {
+                    if (!this.activeSubmission) return;
+                    
+                    const newFinalScore = this.calculateModalTotal();
+                    const subIndex = this.submissions.findIndex(s => s.id === this.activeSubmission.id);
+                    
+                    if (subIndex !== -1) {
+                        this.submissions[subIndex].taskTeacherScores = [...this.activeSubmission.taskTeacherScores];
+                        this.submissions[subIndex].finalScore = newFinalScore;
+                        this.submissions[subIndex].percentage = Math.round((newFinalScore / this.submissions[subIndex].maxScore) * 100);
+                        this.submissions[subIndex].isManuallyGraded = true;
+                        
+                        localStorage.setItem('physics_submissions', JSON.stringify(this.submissions));
+                        alert('Изменения баллов успешно сохранены!');
+                    }
+                    this.reviewModal = false;
                 },
 
                 get filteredSubmissions() {
@@ -511,9 +699,10 @@
 
                 exportToExcel() {
                     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-                    csvContent += "ФИО Ученика,Класс,Тема,Баллы,Макс. баллов,Процент,Время сдачи\n";
+                    csvContent += "ФИО Ученика,Класс,Тема,Балл ИИ,Итоговый балл,Макс. баллов,Процент,Статус проверки,Время сдачи\n";
                     this.filteredSubmissions.forEach(row => {
-                        csvContent += `"${row.studentName}","${row.studentClass}","${row.topic}",${row.score},${row.maxScore},${row.percentage}%, "${row.timestamp}"\n`;
+                        const status = row.isManuallyGraded ? "Скорректирован учителем" : "Проверен ИИ";
+                        csvContent += `"${row.studentName}","${row.studentClass}","${row.topic}",${row.aiTotalScore},${row.finalScore},${row.maxScore},${row.percentage}%,"${status}","${row.timestamp}"\n`;
                     });
                     const encodedUri = encodeURI(csvContent);
                     const link = document.createElement("a");
