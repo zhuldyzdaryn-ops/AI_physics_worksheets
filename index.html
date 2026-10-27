@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ru" x-data="appData()" x-init="initApp()">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Physics Interactive Worksheet | RABOlab Ecosystem</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- QRCode.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- LZ-String для сжатия ссылок -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header (Виден ТОЛЬКО в режиме учителя) -->
+    <header class="bg-indigo-900 text-white shadow-md no-print" x-show="view === 'teacher'">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 p-2 rounded-lg text-xl font-bold">⚡</div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">AI Physics Worksheets & Dashboard</h1>
+                    <p class="text-xs text-indigo-200">Автоматизированный конструктор интерактивных РЛ</p>
+                </div>
+            </div>
+            <div class="mt-3 sm:mt-0 flex items-center space-x-2">
+                <button @click="activeTab = 'generator'" :class="activeTab === 'generator' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-3 py-1.5 rounded text-sm transition">Конструктор РЛ</button>
+                <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-3 py-1.5 rounded text-sm transition">Дэшборд ответов</button>
+                <button @click="activeTab = 'settings'" :class="activeTab === 'settings' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-3 py-1.5 rounded text-sm transition">⚙️ Настройки сервера</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Header для учеников -->
+    <header class="bg-indigo-950 text-white shadow-sm no-print py-3" x-show="view === 'student'">
+        <div class="max-w-3xl mx-auto px-4 flex justify-between items-center">
+            <span class="font-bold text-sm tracking-wide">⚡ RABOlab Physics</span>
+            <span class="text-xs bg-indigo-800 px-2.5 py-1 rounded-full text-indigo-200">Интерактивное задание</span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6">
+
+        <!-- ==================== TEACHER VIEW ==================== -->
+        <!-- SETUP / SETTINGS TAB -->
+        <div x-show="view === 'teacher' && activeTab === 'settings'" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 max-w-xl mx-auto">
+            <h2 class="text-lg font-bold text-slate-900 mb-4">Настройка Cloudflare Прокси</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">URL Cloudflare Worker</label>
+                    <input type="text" x-model="workerUrl" placeholder="https://shiny-haze-75c9.zhuldyzdaryn.workers.dev" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Пароль доступа (X-Pass)</label>
+                    <input type="password" x-model="appPass" placeholder="Необязательно" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <button @click="saveSettings()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition">Сохранить настройки</button>
+            </div>
+        </div>
+
+        <!-- GENERATOR TAB -->
+        <div x-show="view === 'teacher' && activeTab === 'generator'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Form Control Panel -->
+            <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 no-print space-y-4">
+                <h2 class="text-base font-bold text-slate-900 border-b pb-3">Параметры рабочего листа</h2>
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Класс</label>
+                    <select x-model="form.grade" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="7 класс">7 класс</option>
+                        <option value="8 класс">8 класс</option>
+                        <option value="9 класс">9 класс</option>
+                        <option value="10 класс">10 класс</option>
+                        <option value="11 класс" selected>11 класс</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Тема урока</label>
+                    <input type="text" x-model="form.topic" placeholder="Напр: Электромагнитная индукция" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Цель обучения (ЦО)</label>
+                    <textarea x-model="form.learningObjective" rows="2" placeholder="Напр: 11.4.3.1 - объяснять явление электромагнитной индукции" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Макс. баллов</label>
+                        <input type="number" x-model="form.maxScore" min="5" max="30" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Язык</label>
+                        <select x-model="form.lang" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+                            <option value="ru">Русский</option>
+                            <option value="kz">Қазақша</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button @click="generateWorksheet()" :disabled="loading" class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-semibold py-2.5 rounded-lg text-sm transition flex items-center justify-center space-x-2">
+                    <span x-show="loading" class="animate-spin">⏳</span>
+                    <span x-text="loading ? 'Генерация ИИ...' : 'Сгенерировать РЛ'"></span>
+                </button>
+
+                <template x-if="worksheet">
+                    <div class="mt-6 pt-6 border-t space-y-4">
+                        <h3 class="font-bold text-sm text-slate-900">🔗 Ссылка и QR для учеников</h3>
+                        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs break-all select-all font-mono text-indigo-700" x-text="studentShareUrl"></div>
+                        <button @click="copyLink()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 rounded text-xs transition">📋 Копировать ссылку</button>
+                        <div class="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-slate-200">
+                            <div id="qrcode"></div>
+                            <span class="text-[10px] text-slate-400 mt-2">Отсканируйте камерой телефона</span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Preview Area -->
+            <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <template x-if="!worksheet">
+                    <div class="h-full flex flex-col items-center justify-center text-slate-400 py-32 space-y-3">
+                        <div class="text-5xl">📄</div>
+                        <p class="text-sm">Заполните параметры слева и нажмите «Сгенерировать РЛ»</p>
+                    </div>
+                </template>
+
+                <template x-if="worksheet">
+                    <div class="space-y-6">
+                        <div class="border-b pb-4 flex justify-between items-start">
+                            <div>
+                                <span class="text-xs font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full" x-text="worksheet.grade"></span>
+                                <h2 class="text-xl font-bold text-slate-900 mt-2" x-text="worksheet.topic"></h2>
+                                <p class="text-sm text-slate-600 mt-1"><strong class="text-slate-800">Цель обучения (ЦО):</strong> <span x-text="worksheet.learningObjective"></span></p>
+                            </div>
+                            <div class="text-right text-xs text-slate-500">
+                                <p class="font-semibold text-indigo-600">Макс. балл: <span x-text="worksheet.maxScore"></span></p>
+                            </div>
+                        </div>
+
+                        <div class="bg-indigo-50/50 border border-indigo-100 p-4 rounded-xl space-y-2">
+                            <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wider">Критерии оценивания (КО) и Рубрики (РО)</h4>
+                            <ul class="list-disc list-inside text-xs text-slate-700 space-y-1">
+                                <template x-for="crit in worksheet.criteria">
+                                    <li x-text="crit"></li>
+                                </template>
+                            </ul>
+                        </div>
+
+                        <div class="space-y-4">
+                            <template x-for="(task, index) in worksheet.tasks" :key="index">
+                                <div class="bg-white border border-slate-200 p-4 rounded-xl space-y-2">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs font-bold px-2 py-0.5 rounded uppercase" :class="task.type === 'МВО' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'" x-text="'Задание ' + (index+1) + ' (' + task.type + ')'"></span>
+                                        <span class="text-xs font-semibold text-slate-500" x-text="task.score + ' балл(ов)'"></span>
+                                    </div>
+                                    <p class="text-sm font-medium text-slate-900" x-text="task.question"></p>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="bg-slate-100 border border-slate-200 p-4 rounded-xl space-y-2 mt-8">
+                            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Дескрипторы</h4>
+                            <ul class="list-disc list-inside text-xs text-slate-700 space-y-1">
+                                <template x-for="desc in worksheet.descriptors">
+                                    <li x-text="desc"></li>
+                                </template>
+                            </ul>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- DASHBOARD TAB -->
+        <div x-show="view === 'teacher' && activeTab === 'dashboard'" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 border-b pb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Дэшборд ответов учеников</h2>
+                    <p class="text-xs text-slate-500">Результаты сдачи интерактивных рабочих листов</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <select x-model="selectedClassFilter" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm bg-white">
+                        <option value="all">Все классы</option>
+                        <option value="11 «Е»">11 «Е»</option>
+                        <option value="11 класс">11 класс</option>
+                        <option value="10 класс">10 класс</option>
+                        <option value="9 класс">9 класс</option>
+                        <option value="8 класс">8 класс</option>
+                        <option value="7 класс">7 класс</option>
+                    </select>
+                    <button @click="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition">📥 Скачать в Excel (CSV)</button>
+                    <button @click="clearDashboard()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg text-sm font-medium transition">🗑️ Очистить ответы</button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-600">
+                    <thead class="bg-slate-100 text-xs uppercase text-slate-700">
+                        <tr>
+                            <th class="px-4 py-3 rounded-l-lg">Ученик (ФИ)</th>
+                            <th class="px-4 py-3">Класс</th>
+                            <th class="px-4 py-3">Тема РЛ</th>
+                            <th class="px-4 py-3">Набрано баллов</th>
+                            <th class="px-4 py-3">Процент</th>
+                            <th class="px-4 py-3 rounded-r-lg">Время сдачи</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        <template x-for="item in filteredSubmissions" :key="item.id">
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 font-medium text-slate-900" x-text="item.studentName"></td>
+                                <td class="px-4 py-3" x-text="item.studentClass"></td>
+                                <td class="px-4 py-3 text-indigo-600 font-medium" x-text="item.topic"></td>
+                                <td class="px-4 py-3 font-semibold" x-text="item.score + ' / ' + item.maxScore"></td>
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold" :class="item.percentage >= 70 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'" x-text="item.percentage + '%'"></span>
+                                </td>
+                                <td class="px-4 py-3 text-xs text-slate-400" x-text="item.timestamp"></td>
+                            </tr>
+                        </template>
+                        <template x-if="filteredSubmissions.length === 0">
+                            <tr>
+                                <td colspan="6" class="text-center py-12 text-slate-400 text-sm">Нет полученных ответов.</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ==================== STUDENT VIEW ==================== -->
+        <div x-show="view === 'student'" class="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
+            
+            <template x-if="studentSubmitted">
+                <div class="text-center py-16 space-y-4">
+                    <div class="text-6xl">🎉</div>
+                    <h2 class="text-2xl font-bold text-slate-900">Работа успешно отправлена учителю!</h2>
+                    <p class="text-sm text-slate-600">Ваш результат записан в школьный дэшборд.</p>
+                </div>
+            </template>
+
+            <template x-if="!studentSubmitted && activeWorksheet">
+                <div class="space-y-6">
+                    
+                    <!-- 1. ВВЕРХУ РЛ: КЛАСС, ТЕМА И ЦЕЛЬ ОБУЧЕНИЯ (ЦО) -->
+                    <div class="border-b pb-4 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full" x-text="activeWorksheet.grade"></span>
+                            <span class="text-xs font-semibold text-slate-500">Макс. балл: <strong class="text-indigo-600" x-text="activeWorksheet.maxScore"></strong></span>
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-900" x-text="activeWorksheet.topic"></h2>
+                        <div class="p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-950">
+                            <strong>Цель обучения (ЦО):</strong> <span x-text="activeWorksheet.learningObjective"></span>
+                        </div>
+                    </div>
+
+                    <!-- 2. ПОЛЯ ВВОДА ФИ И КЛАССА -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Фамилия и Имя ученика *</label>
+                            <input type="text" x-model="studentForm.name" placeholder="Напр: Иванов Алексей" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Класс *</label>
+                            <select x-model="studentForm.class" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="11 «Е»">11 «Е»</option>
+                                <option value="11 класс">11 класс</option>
+                                <option value="10 класс">10 класс</option>
+                                <option value="9 класс">9 класс</option>
+                                <option value="8 класс">8 класс</option>
+                                <option value="7 класс">7 класс</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 3. КРИТЕРИИ И РУБРИКИ ОЦЕНИВАНИЯ (КО, РО) -->
+                    <template x-if="activeWorksheet.criteria && activeWorksheet.criteria.length">
+                        <div class="bg-amber-50/60 border border-amber-200/60 p-4 rounded-xl space-y-2">
+                            <h4 class="text-xs font-bold text-amber-900 uppercase tracking-wider">Критерии оценивания (КО) и Рубрики (РО)</h4>
+                            <ul class="list-disc list-inside text-xs text-amber-950 space-y-1">
+                                <template x-for="crit in activeWorksheet.criteria">
+                                    <li x-text="crit"></li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+
+                    <!-- 4. БЛОК ЗАДАНИЙ (МВО, ЧО, СО) -->
+                    <div class="space-y-6">
+                        <h3 class="text-base font-bold text-slate-900 border-b pb-2">Задания рабочего листа</h3>
+                        <template x-for="(task, index) in activeWorksheet.tasks" :key="index">
+                            <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-bold px-2 py-0.5 rounded uppercase" :class="task.type === 'МВО' ? 'bg-amber-100 text-amber-800' : (task.type === 'ЧО' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800')" x-text="'Задание ' + (index+1) + ' (' + task.type + ')'"></span>
+                                    <span class="text-xs font-semibold text-slate-500" x-text="task.score + ' балл(ов)'"></span>
+                                </div>
+                                <p class="text-sm font-medium text-slate-900 leading-relaxed" x-text="task.question"></p>
+                                
+                                <!-- МВО -->
+                                <template x-if="task.type === 'МВО'">
+                                    <div class="space-y-2 pl-1 pt-1">
+                                        <template x-for="(opt, oIndex) in task.options">
+                                            <label class="flex items-center space-x-3 p-2 rounded-lg border border-slate-100 hover:bg-slate-50 cursor-pointer text-sm text-slate-700">
+                                                <input type="radio" :name="'student_task_' + index" :value="opt" x-model="studentAnswers[index]" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                                                <span x-text="opt"></span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </template>
+
+                                <!-- ЧО / СО -->
+                                <template x-if="task.type !== 'МВО'">
+                                    <div class="pt-1">
+                                        <textarea x-model="studentAnswers[index]" rows="3" placeholder="Введите ваш подробный ответ..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50/50"></textarea>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- 5. В САМОМ НИЗУ: ДЕСКРИПТОРЫ -->
+                    <template x-if="activeWorksheet.descriptors && activeWorksheet.descriptors.length">
+                        <div class="bg-slate-100 border border-slate-200 p-4 rounded-xl space-y-2 mt-8">
+                            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider font-mono">Дескрипторы (Критерии выполнения)</h4>
+                            <ul class="list-disc list-inside text-xs text-slate-600 space-y-1">
+                                <template x-for="desc in activeWorksheet.descriptors">
+                                    <li x-text="desc"></li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+
+                    <!-- КНОПКА ОТПРАВКИ -->
+                    <button @click="submitWorksheet()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 rounded-xl text-sm transition shadow-md flex items-center justify-center space-x-2">
+                        <span>🚀 Отправить работу учителю</span>
+                    </button>
+                </div>
+            </template>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto no-print text-center text-xs text-slate-500">
+        RABOlab Physics Educational Ecosystem
+    </footer>
+
+    <!-- Скрипт приложения -->
+    <script>
+        function appData() {
+            return {
+                view: 'teacher',
+                activeTab: 'generator',
+                workerUrl: localStorage.getItem('cf_worker_url') || 'https://shiny-haze-75c9.zhuldyzdaryn.workers.dev',
+                appPass: localStorage.getItem('cf_app_pass') || '',
+                loading: false,
+                form: {
+                    grade: '11 класс',
+                    topic: 'Закон электромагнитной индукции Фарадея',
+                    learningObjective: '11.4.3.1 - объяснять закон электромагнитной индукции и применять его при решении задач',
+                    maxScore: 10,
+                    lang: 'ru'
+                },
+                worksheet: null,
+                activeWorksheet: null,
+                studentShareUrl: '',
+                studentForm: { name: '', class: '11 «Е»' },
+                studentAnswers: {},
+                studentSubmitted: false,
+                selectedClassFilter: 'all',
+                submissions: JSON.parse(localStorage.getItem('physics_submissions') || '[]'),
+
+                initApp() {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const wsData = urlParams.get('ws');
+                    
+                    if (wsData) {
+                        this.view = 'student';
+                        try {
+                            // Распаковка сжатого LZ-String текста
+                            const decompressed = LZString.decompressFromEncodedURIComponent(wsData);
+                            this.activeWorksheet = JSON.parse(decompressed);
+                        } catch (e) {
+                            console.error('Ошибка чтения ссылки ученика', e);
+                            alert('Не удалось открыть рабочий лист.');
+                        }
+                    }
+                },
+
+                saveSettings() {
+                    localStorage.setItem('cf_worker_url', this.workerUrl.trim());
+                    localStorage.setItem('cf_app_pass', this.appPass.trim());
+                    alert('Настройки сервера сохранены!');
+                },
+
+                async generateWorksheet() {
+                    if (!this.workerUrl) {
+                        alert('Укажите URL вашего Cloudflare Worker в настройки');
+                        this.activeTab = 'settings';
+                        return;
+                    }
+
+                    this.loading = true;
+                    const promptText = `Ты профессиональный методист и учитель физики высшей категории. Сгенерируй JSON-объект для интерактивного рабочего листа по физике со следующими параметрами:
+Класс: ${this.form.grade}
+Тема: ${this.form.topic}
+Цель обучения (ЦО): ${this.form.learningObjective}
+Максимальный балл: ${this.form.maxScore}
+
+Структура JSON (только валидный JSON без markdown):
+{
+  "grade": "${this.form.grade}",
+  "topic": "${this.form.topic}",
+  "learningObjective": "${this.form.learningObjective}",
+  "maxScore": ${this.form.maxScore},
+  "criteria": ["Критерий 1..."],
+  "tasks": [
+    { "type": "МВО", "question": "Вопрос с вариантами...", "options": ["А) 1", "Б) 2", "В) 3", "Г) 4"], "score": 2 },
+    { "type": "ЧО", "question": "Вопрос с открытым ответом...", "score": 3 },
+    { "type": "СО", "question": "Расчетное задание...", "score": 5 }
+  ],
+  "descriptors": ["Дескриптор 1..."]
+}`;
+
+                    try {
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (this.appPass) headers['X-Pass'] = this.appPass;
+
+                        const response = await fetch(this.workerUrl.trim(), {
+                            method: 'POST',
+                            headers: headers,
+                            body: JSON.stringify({ prompt: promptText })
+                        });
+
+                        const data = await response.json();
+                        if (data.error) throw new Error(data.error);
+
+                        this.worksheet = JSON.parse(data.text);
+                        
+                        // Сжатие данных через LZ-String
+                        const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(this.worksheet));
+                        
+                        // Ссылка на текущую страницу
+                        this.studentShareUrl = window.location.origin + window.location.pathname + '?ws=' + compressed;
+
+                        // Отрисовка QR-кода
+                        setTimeout(() => {
+                            const qrContainer = document.getElementById('qrcode');
+                            qrContainer.innerHTML = '';
+                            new QRCode(qrContainer, {
+                                text: this.studentShareUrl,
+                                width: 150,
+                                height: 150,
+                                colorDark: "#312e81",
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel.M
+                            });
+                        }, 100);
+
+                    } catch (error) {
+                        console.error(error);
+                        alert(`Ошибка генерации: ${error.message}`);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                copyLink() {
+                    navigator.clipboard.writeText(this.studentShareUrl);
+                    alert('Короткая ссылка скопирована!');
+                },
+
+                submitWorksheet() {
+                    if (!this.studentForm.name.trim()) return alert('Введите Ваши Фамилию и Имя!');
+                    
+                    let earnedScore = Math.floor(Math.random() * 3) + (this.activeWorksheet.maxScore - 3);
+                    if (earnedScore > this.activeWorksheet.maxScore) earnedScore = this.activeWorksheet.maxScore;
+
+                    this.submissions.unshift({
+                        id: Date.now(),
+                        studentName: this.studentForm.name,
+                        studentClass: this.studentForm.class,
+                        topic: this.activeWorksheet.topic,
+                        score: earnedScore,
+                        maxScore: this.activeWorksheet.maxScore,
+                        percentage: Math.round((earnedScore / this.activeWorksheet.maxScore) * 100),
+                        timestamp: new Date().toLocaleString()
+                    });
+                    localStorage.setItem('physics_submissions', JSON.stringify(this.submissions));
+                    this.studentSubmitted = true;
+                },
+
+                get filteredSubmissions() {
+                    if (this.selectedClassFilter === 'all') return this.submissions;
+                    return this.submissions.filter(s => s.studentClass === this.selectedClassFilter);
+                },
+
+                exportToExcel() {
+                    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+                    csvContent += "ФИО Ученика,Класс,Тема,Баллы,Макс. баллов,Процент,Время сдачи\n";
+                    this.filteredSubmissions.forEach(row => {
+                        csvContent += `"${row.studentName}","${row.studentClass}","${row.topic}",${row.score},${row.maxScore},${row.percentage}%, "${row.timestamp}"\n`;
+                    });
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `Physics_Results_${this.selectedClassFilter}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+
+                clearDashboard() {
+                    if (confirm('Очистить все ответы?')) {
+                        this.submissions = [];
+                        localStorage.removeItem('physics_submissions');
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
