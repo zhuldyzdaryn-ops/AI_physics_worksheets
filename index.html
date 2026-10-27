@@ -2,7 +2,7 @@
 <html lang="ru" x-data="appData()" x-init="initApp()">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI Physics Interactive Worksheet & Evaluation Dashboard</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -10,74 +10,79 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- LZ-String для сжатия ссылок -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    <!-- QRCode.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        /* Предотвращение зума при фокусе на iOS */
+        @media screen and (max-width: 768px) {
+            input, select, textarea { font-size: 16px !important; }
+        }
         @media print {
             .no-print { display: none !important; }
             .print-only { display: block !important; }
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
 
     <!-- Header (Учительская панель) -->
-    <header class="bg-indigo-900 text-white shadow-md no-print" x-show="view === 'teacher'">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <div class="bg-indigo-600 p-2 rounded-lg text-xl font-bold">⚡</div>
-                <div>
-                    <div class="flex items-center space-x-2">
-                        <h1 class="text-xl font-bold tracking-wide">AI Physics Worksheets & Dashboard</h1>
-                        <!-- Контакты в левом верхнем углу -->
-                        <div class="flex items-center space-x-1.5 ml-2">
-                            <a href="https://wa.me/qr/3GET76MNXD5SD1" target="_blank" title="Написать в WhatsApp" class="bg-emerald-600 hover:bg-emerald-500 text-white p-1 rounded-full transition flex items-center justify-center w-6 h-6 shadow-sm">
-                                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
-                            </a>
-                            <a href="mailto:zhuldyzdaryn@gmail.com" title="Написать на Почту" class="bg-indigo-600 hover:bg-indigo-500 text-white p-1 rounded-full transition flex items-center justify-center w-6 h-6 shadow-sm">
-                                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M0 3v18h24v-18h-24zm21.518 2l-9.518 6.013-9.518-6.013h19.036zm-19.518 14v-11.817l10 6.32 10-6.32v11.817h-20z"/></svg>
-                            </a>
-                        </div>
+    <header class="bg-indigo-900 text-white shadow-md no-print sticky top-0 z-40" x-show="view === 'teacher'">
+        <div class="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-start">
+                <div class="flex items-center space-x-2">
+                    <!-- Контакты в самом левом краю -->
+                    <div class="flex items-center space-x-1.5 mr-1 border-r border-indigo-700 pr-2 sm:pr-3">
+                        <a href="https://wa.me/qr/3GET76MNXD5SD1" target="_blank" title="WhatsApp" class="bg-emerald-600 hover:bg-emerald-500 text-white p-1.5 rounded-full transition flex items-center justify-center w-7 h-7 shadow-sm">
+                            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+                        </a>
+                        <a href="mailto:zhuldyzdaryn@gmail.com" title="Email" class="bg-indigo-600 hover:bg-indigo-500 text-white p-1.5 rounded-full transition flex items-center justify-center w-7 h-7 shadow-sm">
+                            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M0 3v18h24v-18h-24zm21.518 2l-9.518 6.013-9.518-6.013h19.036zm-19.518 14v-11.817l10 6.32 10-6.32v11.817h-20z"/></svg>
+                        </a>
                     </div>
-                    <p class="text-xs text-indigo-200">Конструктор рабочего листа по физике</p>
+                    <div class="bg-indigo-600 p-1.5 sm:p-2 rounded-lg text-lg sm:text-xl font-bold">⚡</div>
+                    <div>
+                        <h1 class="text-base sm:text-xl font-bold tracking-wide">AI Physics Dashboard</h1>
+                        <p class="text-[10px] sm:text-xs text-indigo-200">Конструктор рабочего листа по физике</p>
+                    </div>
                 </div>
             </div>
-            <div class="mt-3 sm:mt-0 flex items-center space-x-2">
-                <button @click="activeTab = 'generator'" :class="activeTab === 'generator' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-3 py-1.5 rounded text-sm transition">Конструктор РЛ</button>
-                <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-3 py-1.5 rounded text-sm transition flex items-center space-x-1">
-                    <span>Дэшборд ответов</span>
-                    <span class="bg-indigo-500 text-white text-xs px-1.5 py-0.5 rounded-full" x-text="submissions.length"></span>
+            
+            <div class="flex items-center space-x-1.5 sm:space-x-2 w-full sm:w-auto justify-center">
+                <button @click="activeTab = 'generator'" :class="activeTab === 'generator' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-2.5 sm:px-3 py-1.5 rounded text-xs sm:text-sm transition flex-1 sm:flex-none text-center">Конструктор</button>
+                <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-2.5 sm:px-3 py-1.5 rounded text-xs sm:text-sm transition flex items-center justify-center space-x-1 flex-1 sm:flex-none">
+                    <span>Ответы</span>
+                    <span class="bg-indigo-500 text-white text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full" x-text="submissions.length"></span>
                 </button>
-                <button @click="activeTab = 'settings'" :class="activeTab === 'settings' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-3 py-1.5 rounded text-sm transition">⚙️ Настройки сервера</button>
+                <button @click="activeTab = 'settings'" :class="activeTab === 'settings' ? 'bg-indigo-700 font-semibold' : 'bg-indigo-800 hover:bg-indigo-700'" class="px-2.5 sm:px-3 py-1.5 rounded text-xs sm:text-sm transition">⚙️</button>
             </div>
         </div>
     </header>
 
-    <!-- Header для учеников -->
-    <header class="bg-indigo-950 text-white shadow-sm no-print py-3" x-show="view === 'student'">
-        <div class="max-w-3xl mx-auto px-4 flex justify-between items-center">
+    <!-- Header для учеников (Адаптирован под смартфоны) -->
+    <header class="bg-indigo-950 text-white shadow-sm no-print sticky top-0 z-40 py-2.5 px-4" x-show="view === 'student'">
+        <div class="max-w-3xl mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-2">
-                <span class="font-bold text-sm tracking-wide">⚡ RABOlab Physics</span>
-                <!-- Контакты для учеников -->
-                <a href="https://wa.me/qr/3GET76MNXD5SD1" target="_blank" title="WhatsApp" class="bg-emerald-600 hover:bg-emerald-500 text-white p-1 rounded-full transition flex items-center justify-center w-5 h-5 ml-1">
-                    <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+                <a href="https://wa.me/qr/3GET76MNXD5SD1" target="_blank" title="WhatsApp" class="bg-emerald-600 hover:bg-emerald-500 text-white p-1 rounded-full transition flex items-center justify-center w-6 h-6 mr-1">
+                    <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
                 </a>
-                <a href="mailto:zhuldyzdaryn@gmail.com" title="Email" class="bg-indigo-700 hover:bg-indigo-600 text-white p-1 rounded-full transition flex items-center justify-center w-5 h-5">
-                    <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M0 3v18h24v-18h-24zm21.518 2l-9.518 6.013-9.518-6.013h19.036zm-19.518 14v-11.817l10 6.32 10-6.32v11.817h-20z"/></svg>
+                <a href="mailto:zhuldyzdaryn@gmail.com" title="Email" class="bg-indigo-700 hover:bg-indigo-600 text-white p-1 rounded-full transition flex items-center justify-center w-6 h-6 mr-1.5">
+                    <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M0 3v18h24v-18h-24zm21.518 2l-9.518 6.013-9.518-6.013h19.036zm-19.518 14v-11.817l10 6.32 10-6.32v11.817h-20z"/></svg>
                 </a>
+                <span class="font-bold text-xs sm:text-sm tracking-wide">⚡ RABOlab Physics</span>
             </div>
-            <span class="text-xs bg-indigo-800 px-2.5 py-1 rounded-full text-indigo-200">Интерактивный рабочий лист</span>
+            <span class="text-[10px] sm:text-xs bg-indigo-800 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-indigo-200">Рабочий лист</span>
         </div>
     </header>
 
     <!-- Main Container -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6">
+    <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6">
 
-        <!-- ==================== TEACHER VIEW ==================== -->
         <!-- SETUP / SETTINGS TAB -->
-        <div x-show="view === 'teacher' && activeTab === 'settings'" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 max-w-xl mx-auto">
-            <h2 class="text-lg font-bold text-slate-900 mb-4">Настройка Cloudflare Прокси</h2>
+        <div x-show="view === 'teacher' && activeTab === 'settings'" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 max-w-xl mx-auto">
+            <h2 class="text-base sm:text-lg font-bold text-slate-900 mb-4">Настройка Cloudflare Прокси</h2>
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">URL Cloudflare Worker</label>
@@ -94,7 +99,7 @@
         <!-- GENERATOR TAB -->
         <div x-show="view === 'teacher' && activeTab === 'generator'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Form Control Panel -->
-            <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 no-print space-y-4">
+            <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 no-print space-y-4">
                 <h2 class="text-base font-bold text-slate-900 border-b pb-3">Параметры рабочего листа</h2>
                 
                 <div>
@@ -115,7 +120,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Цель обучения (ЦО)</label>
-                    <textarea x-model="form.learningObjective" rows="2" placeholder="Напр: 11.4.3.1 - объяснять явление электромагнитной индукции" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                    <textarea x-model="form.learningObjective" rows="2" placeholder="Напр: 11.4.3.1 - объяснять явление..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -132,7 +137,7 @@
                     </div>
                 </div>
 
-                <button @click="generateWorksheet()" :disabled="loading" class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-semibold py-2.5 rounded-lg text-sm transition flex items-center justify-center space-x-2">
+                <button @click="generateWorksheet()" :disabled="loading" class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-semibold py-3 sm:py-2.5 rounded-lg text-sm transition flex items-center justify-center space-x-2 shadow-sm">
                     <span x-show="loading" class="animate-spin">⏳</span>
                     <span x-text="loading ? 'Генерация заданий ИИ...' : 'Сгенерировать'"></span>
                 </button>
@@ -141,13 +146,10 @@
                     <div class="mt-6 pt-6 border-t space-y-4">
                         <h3 class="font-bold text-sm text-slate-900">🔗 Ссылка и QR для учеников</h3>
                         <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs break-all select-all font-mono text-indigo-700" x-text="studentShareUrl"></div>
-                        <button @click="copyLink()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 rounded text-xs transition">📋 Копировать ссылку</button>
+                        <button @click="copyLink()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 rounded text-xs transition">📋 Копировать ссылку</button>
                         
-                        <!-- Стабильный QR-код через API -->
                         <div class="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-slate-200">
-                            <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(studentShareUrl)" 
-                                 alt="QR Code" 
-                                 class="w-40 h-40 rounded shadow-sm border border-slate-100">
+                            <div id="qrcode" class="p-2 bg-white rounded border border-slate-100 shadow-sm"></div>
                             <span class="text-[10px] text-slate-400 mt-2">Отсканируйте камерой телефона</span>
                         </div>
                     </div>
@@ -155,29 +157,28 @@
             </div>
 
             <!-- Preview Area -->
-            <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-8">
                 <template x-if="!worksheet">
-                    <div class="h-full flex flex-col items-center justify-center text-slate-400 py-32 space-y-3">
-                        <div class="text-5xl">📄</div>
-                        <p class="text-sm">Заполните параметры слева и нажмите «Сгенерировать РЛ»</p>
+                    <div class="h-full flex flex-col items-center justify-center text-slate-400 py-20 sm:py-32 space-y-3">
+                        <div class="text-4xl sm:text-5xl">📄</div>
+                        <p class="text-xs sm:text-sm text-center">Заполните параметры и нажмите «Сгенерировать»</p>
                     </div>
                 </template>
 
                 <template x-if="worksheet">
                     <div class="space-y-6">
-                        <div class="border-b pb-4 flex justify-between items-start">
+                        <div class="border-b pb-4 flex flex-col sm:flex-row justify-between items-start gap-2">
                             <div>
                                 <span class="text-xs font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full" x-text="worksheet.grade"></span>
-                                <h2 class="text-xl font-bold text-slate-900 mt-2" x-text="worksheet.topic"></h2>
-                                <p class="text-sm text-slate-600 mt-1"><strong class="text-slate-800">Цель обучения (ЦО):</strong> <span x-text="worksheet.learningObjective"></span></p>
+                                <h2 class="text-lg sm:text-xl font-bold text-slate-900 mt-2" x-text="worksheet.topic"></h2>
+                                <p class="text-xs sm:text-sm text-slate-600 mt-1"><strong class="text-slate-800">ЦО:</strong> <span x-text="worksheet.learningObjective"></span></p>
                             </div>
-                            <div class="text-right text-xs text-slate-500">
+                            <div class="text-left sm:text-right text-xs text-slate-500">
                                 <p class="font-semibold text-indigo-600">Макс. балл: <span x-text="worksheet.maxScore"></span></p>
-                                <p class="text-[11px] text-slate-400 mt-1 font-mono" x-text="worksheet.tasks.length + ' заданий (МВО, УО, УП, КЗ...)'"></p>
                             </div>
                         </div>
 
-                        <div class="bg-indigo-50/50 border border-indigo-100 p-4 rounded-xl space-y-2">
+                        <div class="bg-indigo-50/50 border border-indigo-100 p-3 sm:p-4 rounded-xl space-y-2">
                             <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wider">Критерии оценивания (КО) и Рубрики (РО)</h4>
                             <ul class="list-disc list-inside text-xs text-slate-700 space-y-1">
                                 <template x-for="crit in worksheet.criteria">
@@ -189,50 +190,32 @@
                         <!-- Preview Tasks -->
                         <div class="space-y-4">
                             <template x-for="(task, index) in worksheet.tasks" :key="index">
-                                <div class="bg-white border border-slate-200 p-4 rounded-xl space-y-2">
+                                <div class="bg-white border border-slate-200 p-3.5 sm:p-4 rounded-xl space-y-2">
                                     <div class="flex justify-between items-center">
-                                        <span class="text-xs font-bold px-2 py-0.5 rounded uppercase" 
-                                              :class="{
-                                                  'bg-amber-100 text-amber-800': task.type === 'МВО',
-                                                  'bg-blue-100 text-blue-800': task.type === 'КО',
-                                                  'bg-purple-100 text-purple-800': task.type === 'РО',
-                                                  'bg-emerald-100 text-emerald-800': task.type === 'УО',
-                                                  'bg-teal-100 text-teal-800': task.type === 'УП',
-                                                  'bg-rose-100 text-rose-800': task.type === 'КВО' || task.type === 'КЗ'
-                                              }" 
-                                              x-text="'Задание ' + (index+1) + ' (' + task.type + ')'"></span>
-                                        <span class="text-xs font-semibold text-slate-500" x-text="task.score + ' балл(ов)'"></span>
+                                        <span class="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded uppercase bg-indigo-100 text-indigo-800" x-text="'Задание ' + (index+1) + ' (' + task.type + ')'"></span>
+                                        <span class="text-xs font-semibold text-slate-500" x-text="task.score + ' б.'"></span>
                                     </div>
-                                    <p class="text-sm font-medium text-slate-900" x-text="task.question"></p>
-                                    <div class="text-xs text-emerald-700 bg-emerald-50 p-2 rounded border border-emerald-100 font-mono">
-                                        <strong>Эталон ответа:</strong> <span x-text="task.correctAnswer"></span>
+                                    <p class="text-xs sm:text-sm font-medium text-slate-900" x-text="task.question"></p>
+                                    <div class="text-[11px] sm:text-xs text-emerald-700 bg-emerald-50 p-2 rounded border border-emerald-100 font-mono break-words">
+                                        <strong>Эталон:</strong> <span x-text="task.correctAnswer"></span>
                                     </div>
                                 </div>
                             </template>
-                        </div>
-
-                        <div class="bg-slate-100 border border-slate-200 p-4 rounded-xl space-y-2 mt-8">
-                            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Дескрипторы</h4>
-                            <ul class="list-disc list-inside text-xs text-slate-700 space-y-1">
-                                <template x-for="desc in worksheet.descriptors">
-                                    <li x-text="desc"></li>
-                                </template>
-                            </ul>
                         </div>
                     </div>
                 </template>
             </div>
         </div>
 
-        <!-- DASHBOARD TAB WITH MANUAL REVIEW -->
-        <div x-show="view === 'teacher' && activeTab === 'dashboard'" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 border-b pb-4">
+        <!-- DASHBOARD TAB -->
+        <div x-show="view === 'teacher' && activeTab === 'dashboard'" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
                 <div>
-                    <h2 class="text-lg font-bold text-slate-900">Дэшборд ответов учеников</h2>
-                    <p class="text-xs text-slate-500">Автопроверка ИИ + возможность ручной корректировки баллов учителем</p>
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900">Дэшборд ответов</h2>
+                    <p class="text-[11px] sm:text-xs text-slate-500">Автопроверка ИИ + возможность ручной корректировки</p>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <select x-model="selectedClassFilter" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm bg-white">
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <select x-model="selectedClassFilter" class="px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs sm:text-sm bg-white flex-1 sm:flex-none">
                         <option value="all">Все классы</option>
                         <option value="11 «Е»">11 «Е»</option>
                         <option value="11 класс">11 класс</option>
@@ -241,48 +224,39 @@
                         <option value="8 класс">8 класс</option>
                         <option value="7 класс">7 класс</option>
                     </select>
-                    <button @click="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition">📥 Excel (CSV)</button>
-                    <button @click="clearDashboard()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg text-sm font-medium transition">🗑️ Очистить</button>
+                    <button @click="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition">📥 Excel</button>
+                    <button @click="clearDashboard()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition">🗑️</button>
                 </div>
             </div>
 
             <!-- Table -->
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-slate-600">
-                    <thead class="bg-slate-100 text-xs uppercase text-slate-700">
+            <div class="overflow-x-auto -mx-4 sm:mx-0">
+                <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[600px] sm:min-w-full">
+                    <thead class="bg-slate-100 text-[10px] sm:text-xs uppercase text-slate-700">
                         <tr>
-                            <th class="px-4 py-3 rounded-l-lg">Ученик (ФИ)</th>
-                            <th class="px-4 py-3">Класс</th>
-                            <th class="px-4 py-3">Тема РЛ</th>
-                            <th class="px-4 py-3">ИИ Балл</th>
-                            <th class="px-4 py-3">Итоговый балл</th>
-                            <th class="px-4 py-3">Статус</th>
-                            <th class="px-4 py-3 rounded-r-lg text-right">Проверка / Коррекция</th>
+                            <th class="px-3 py-2.5">Ученик (ФИ)</th>
+                            <th class="px-3 py-2.5">Класс</th>
+                            <th class="px-3 py-2.5">Итого</th>
+                            <th class="px-3 py-2.5">Статус</th>
+                            <th class="px-3 py-2.5 text-right">Действие</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200">
                         <template x-for="(item, sIndex) in filteredSubmissions" :key="item.id">
                             <tr class="hover:bg-slate-50">
-                                <td class="px-4 py-3 font-medium text-slate-900" x-text="item.studentName"></td>
-                                <td class="px-4 py-3" x-text="item.studentClass"></td>
-                                <td class="px-4 py-3 text-indigo-600 font-medium max-w-xs truncate" x-text="item.topic"></td>
-                                <td class="px-4 py-3 font-mono text-slate-500" x-text="item.aiTotalScore + ' / ' + item.maxScore"></td>
-                                <td class="px-4 py-3 font-bold text-indigo-900" x-text="item.finalScore + ' / ' + item.maxScore + ' (' + item.percentage + '%)'"></td>
-                                <td class="px-4 py-3">
-                                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold" 
+                                <td class="px-3 py-2.5 font-medium text-slate-900" x-text="item.studentName"></td>
+                                <td class="px-3 py-2.5" x-text="item.studentClass"></td>
+                                <td class="px-3 py-2.5 font-bold text-indigo-900" x-text="item.finalScore + ' / ' + item.maxScore"></td>
+                                <td class="px-3 py-2.5">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold" 
                                           :class="item.isManuallyGraded ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800'"
-                                          x-text="item.isManuallyGraded ? '✍️ Скорректирован' : '🤖 Проверен ИИ'"></span>
+                                          x-text="item.isManuallyGraded ? '✍️ Изменен' : '🤖 ИИ'"></span>
                                 </td>
-                                <td class="px-4 py-3 text-right">
-                                    <button @click="openReviewModal(item)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1 rounded border border-indigo-200 text-xs font-semibold transition">
-                                        🔍 Проверить ответы
+                                <td class="px-3 py-2.5 text-right">
+                                    <button @click="openReviewModal(item)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded border border-indigo-200 text-xs transition">
+                                        🔍 Ответы
                                     </button>
                                 </td>
-                            </tr>
-                        </template>
-                        <template x-if="filteredSubmissions.length === 0">
-                            <tr>
-                                <td colspan="7" class="text-center py-12 text-slate-400 text-sm">Нет полученных ответов.</td>
                             </tr>
                         </template>
                     </tbody>
@@ -290,98 +264,93 @@
             </div>
         </div>
 
-        <!-- ==================== MANUAL REVIEW MODAL ==================== -->
-        <div x-show="reviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm no-print" x-cloak>
-            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
-                <!-- Modal Header -->
-                <div class="px-6 py-4 bg-indigo-900 text-white flex justify-between items-center">
+        <!-- MANUAL REVIEW MODAL -->
+        <div x-show="reviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm no-print" x-cloak>
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+                <div class="px-4 py-3 bg-indigo-900 text-white flex justify-between items-center">
                     <div>
-                        <h3 class="font-bold text-lg" x-text="'Проверка работы: ' + (activeSubmission ? activeSubmission.studentName : '')"></h3>
-                        <p class="text-xs text-indigo-200" x-text="(activeSubmission ? activeSubmission.studentClass : '') + ' • ' + (activeSubmission ? activeSubmission.topic : '')"></p>
+                        <h3 class="font-bold text-sm sm:text-lg" x-text="'Проверка: ' + (activeSubmission ? activeSubmission.studentName : '')"></h3>
+                        <p class="text-[10px] sm:text-xs text-indigo-200" x-text="(activeSubmission ? activeSubmission.studentClass : '') + ' • ' + (activeSubmission ? activeSubmission.topic : '')"></p>
                     </div>
-                    <button @click="reviewModal = false" class="text-indigo-200 hover:text-white text-xl font-bold">✕</button>
+                    <button @click="reviewModal = false" class="text-indigo-200 hover:text-white text-xl font-bold p-1">✕</button>
                 </div>
 
-                <!-- Modal Body -->
-                <div class="p-6 overflow-y-auto space-y-6 flex-grow" x-if="activeSubmission">
+                <div class="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6 flex-grow" x-if="activeSubmission">
                     <template x-for="(task, tIndex) in activeSubmission.tasks" :key="tIndex">
-                        <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl space-y-3">
-                            <div class="flex justify-between items-center border-b pb-2">
-                                <span class="text-xs font-bold px-2.5 py-1 rounded uppercase bg-indigo-100 text-indigo-800" x-text="'Задание ' + (tIndex+1) + ' (' + task.type + ')'"></span>
+                        <div class="bg-slate-50 border border-slate-200 p-3.5 sm:p-5 rounded-xl space-y-2 sm:space-y-3">
+                            <div class="flex flex-wrap justify-between items-center gap-2 border-b pb-2">
+                                <span class="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800" x-text="'№' + (tIndex+1) + ' (' + task.type + ')'"></span>
                                 <div class="flex items-center space-x-2 text-xs">
-                                    <span class="text-slate-500">Балл ИИ: <strong class="text-slate-700" x-text="activeSubmission.taskAiScores[tIndex]"></strong></span>
+                                    <span class="text-slate-500">ИИ: <strong x-text="activeSubmission.taskAiScores[tIndex]"></strong></span>
                                     <span class="text-slate-300">|</span>
-                                    <label class="font-semibold text-indigo-900">Балл учителя:</label>
-                                    <input type="number" min="0" :max="task.score" x-model.number="activeSubmission.taskTeacherScores[tIndex]" class="w-16 px-2 py-1 border border-indigo-300 rounded text-center font-bold text-indigo-700 bg-white focus:ring-2 focus:ring-indigo-500">
+                                    <label class="font-semibold text-indigo-900">Учитель:</label>
+                                    <input type="number" min="0" :max="task.score" x-model.number="activeSubmission.taskTeacherScores[tIndex]" class="w-14 px-1.5 py-0.5 border border-indigo-300 rounded text-center font-bold text-indigo-700 bg-white">
                                     <span class="text-slate-500" x-text="'/ ' + task.score"></span>
                                 </div>
                             </div>
 
-                            <p class="text-sm font-medium text-slate-900" x-text="task.question"></p>
+                            <p class="text-xs sm:text-sm font-medium text-slate-900" x-text="task.question"></p>
 
-                            <!-- Ответ ученика -->
-                            <div class="bg-white p-3 rounded-lg border border-slate-200 text-sm">
-                                <span class="text-xs font-bold text-slate-400 uppercase block mb-1">Ответ ученика:</span>
-                                <div class="text-slate-800 font-mono whitespace-pre-wrap" x-text="activeSubmission.studentAnswers[tIndex] || '(Ответ не предоставлен)'"></div>
+                            <div class="bg-white p-2.5 rounded-lg border border-slate-200 text-xs sm:text-sm">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Ответ ученика:</span>
+                                <div class="text-slate-800 font-mono whitespace-pre-wrap break-words" x-text="activeSubmission.studentAnswers[tIndex] || '(Пусто)'"></div>
                             </div>
 
-                            <!-- Эталон ответа учителя -->
-                            <div class="bg-emerald-50/70 p-3 rounded-lg border border-emerald-100 text-xs text-emerald-900 space-y-1">
-                                <div><strong>Эталонный ответ:</strong> <span x-text="task.correctAnswer"></span></div>
+                            <div class="bg-emerald-50/70 p-2.5 rounded-lg border border-emerald-100 text-xs text-emerald-900">
+                                <strong>Эталон:</strong> <span x-text="task.correctAnswer"></span>
                             </div>
                         </div>
                     </template>
                 </div>
 
-                <!-- Modal Footer -->
-                <div class="px-6 py-4 bg-slate-100 border-t border-slate-200 flex justify-between items-center">
-                    <div class="text-sm">
-                        <span class="text-slate-600">Итоговый балл: </span>
-                        <strong class="text-indigo-700 text-base" x-text="calculateModalTotal() + ' / ' + (activeSubmission ? activeSubmission.maxScore : 0)"></strong>
+                <div class="px-4 py-3 bg-slate-100 border-t border-slate-200 flex justify-between items-center">
+                    <div class="text-xs sm:text-sm">
+                        <span class="text-slate-600">Итого: </span>
+                        <strong class="text-indigo-700 font-bold" x-text="calculateModalTotal() + ' / ' + (activeSubmission ? activeSubmission.maxScore : 0)"></strong>
                     </div>
-                    <div class="flex space-x-3">
-                        <button @click="reviewModal = false" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm rounded-lg transition">Отмена</button>
-                        <button @click="saveManualGrading()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shadow-md">💾 Сохранить изменения</button>
+                    <div class="flex space-x-2">
+                        <button @click="reviewModal = false" class="px-3 py-1.5 bg-slate-200 text-slate-700 text-xs sm:text-sm rounded-lg">Отмена</button>
+                        <button @click="saveManualGrading()" class="px-4 py-1.5 bg-indigo-600 text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm">💾 Сохранить</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ==================== STUDENT VIEW ==================== -->
-        <div x-show="view === 'student'" class="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
+        <!-- ==================== STUDENT VIEW (МОБИЛЬНАЯ ОПТИМИЗАЦИЯ) ==================== -->
+        <div x-show="view === 'student'" class="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-8 space-y-5 sm:space-y-6">
             
             <template x-if="studentSubmitted">
-                <div class="text-center py-16 space-y-4">
-                    <div class="text-6xl">🎉</div>
-                    <h2 class="text-2xl font-bold text-slate-900">Работа успешно отправлена учителю!</h2>
-                    <p class="text-sm text-slate-600">Ваш результат записан и передан на проверку.</p>
+                <div class="text-center py-12 sm:py-16 space-y-3 sm:space-y-4">
+                    <div class="text-5xl sm:text-6xl">🎉</div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Работа отправлена учителю!</h2>
+                    <p class="text-xs sm:text-sm text-slate-600">Ваш результат успешно передан на проверку.</p>
                 </div>
             </template>
 
             <template x-if="!studentSubmitted && activeWorksheet">
-                <div class="space-y-6">
+                <div class="space-y-5 sm:space-y-6">
                     
-                    <!-- 1. ВВЕРХУ РЛ: КЛАСС, ТЕМА И ЦЕЛЬ ОБУЧЕНИЯ (ЦО) -->
+                    <!-- 1. ТЕМА И ЦО -->
                     <div class="border-b pb-4 space-y-2">
                         <div class="flex justify-between items-center">
-                            <span class="text-xs font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full" x-text="activeWorksheet.grade"></span>
+                            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full" x-text="activeWorksheet.grade"></span>
                             <span class="text-xs font-semibold text-slate-500">Макс. балл: <strong class="text-indigo-600" x-text="activeWorksheet.maxScore"></strong></span>
                         </div>
-                        <h2 class="text-2xl font-bold text-slate-900" x-text="activeWorksheet.topic"></h2>
-                        <div class="p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-950">
+                        <h2 class="text-xl sm:text-2xl font-bold text-slate-900 leading-snug" x-text="activeWorksheet.topic"></h2>
+                        <div class="p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-xs sm:text-sm text-indigo-950">
                             <strong>Цель обучения (ЦО):</strong> <span x-text="activeWorksheet.learningObjective"></span>
                         </div>
                     </div>
 
-                    <!-- 2. ПОЛЯ ВВОДА ФИ И КЛАССА -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <!-- 2. ФИО И КЛАСС УЧЕНИКА (УДОБНО НА ТЕЛЕФОНЕ) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Фамилия и Имя ученика *</label>
-                            <input type="text" x-model="studentForm.name" placeholder="Напр: Иванов Алексей" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <input type="text" x-model="studentForm.name" placeholder="Напр: Иванов Алексей" class="w-full px-3 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Класс *</label>
-                            <select x-model="studentForm.class" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <select x-model="studentForm.class" class="w-full px-3 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-sm cursor-pointer">
                                 <option value="11 «Е»">11 «Е»</option>
                                 <option value="11 класс">11 класс</option>
                                 <option value="10 класс">10 класс</option>
@@ -392,10 +361,10 @@
                         </div>
                     </div>
 
-                    <!-- 3. КРИТЕРИИ И РУБРИКИ ОЦЕНИВАНИЯ (КО, РО) -->
+                    <!-- 3. КРИТЕРИИ И РУБРИКИ -->
                     <template x-if="activeWorksheet.criteria && activeWorksheet.criteria.length">
-                        <div class="bg-amber-50/60 border border-amber-200/60 p-4 rounded-xl space-y-2">
-                            <h4 class="text-xs font-bold text-amber-900 uppercase tracking-wider">Критерии оценивания (КО) и Рубрики (РО)</h4>
+                        <div class="bg-amber-50/70 border border-amber-200/70 p-3.5 sm:p-4 rounded-xl space-y-1.5">
+                            <h4 class="text-[10px] sm:text-xs font-bold text-amber-900 uppercase tracking-wider">Критерии оценивания (КО) и Рубрики (РО)</h4>
                             <ul class="list-disc list-inside text-xs text-amber-950 space-y-1">
                                 <template x-for="crit in activeWorksheet.criteria">
                                     <li x-text="crit"></li>
@@ -404,48 +373,39 @@
                         </div>
                     </template>
 
-                    <!-- 4. БЛОК ЗАДАНИЙ -->
-                    <div class="space-y-6">
-                        <h3 class="text-base font-bold text-slate-900 border-b pb-2">Задания рабочего листа</h3>
+                    <!-- 4. БЛОК ЗАДАНИЙ (МОБИЛЬНЫЕ КАРТОЧКИ) -->
+                    <div class="space-y-4 sm:space-y-6">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 border-b pb-2">Задания рабочего листа</h3>
                         <template x-for="(task, index) in activeWorksheet.tasks" :key="index">
-                            <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-3">
+                            <div class="bg-white border border-slate-200 p-4 sm:p-5 rounded-xl shadow-sm space-y-3">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-xs font-bold px-2 py-0.5 rounded uppercase" 
-                                          :class="{
-                                              'bg-amber-100 text-amber-800': task.type === 'МВО',
-                                              'bg-blue-100 text-blue-800': task.type === 'КО',
-                                              'bg-purple-100 text-purple-800': task.type === 'РО',
-                                              'bg-emerald-100 text-emerald-800': task.type === 'УО',
-                                              'bg-teal-100 text-teal-800': task.type === 'УП',
-                                              'bg-rose-100 text-rose-800': task.type === 'КВО' || task.type === 'КЗ'
-                                          }"
-                                          x-text="'Задание ' + (index+1) + ' (' + task.type + ')'"></span>
-                                    <span class="text-xs font-semibold text-slate-500" x-text="task.score + ' балл(ов)'"></span>
+                                    <span class="text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded uppercase bg-indigo-100 text-indigo-800" x-text="'Задание ' + (index+1) + ' (' + task.type + ')'"></span>
+                                    <span class="text-xs font-semibold text-slate-500" x-text="task.score + ' б.'"></span>
                                 </div>
 
-                                <p class="text-sm font-medium text-slate-900 leading-relaxed" x-text="task.question"></p>
+                                <p class="text-xs sm:text-sm font-medium text-slate-900 leading-relaxed" x-text="task.question"></p>
 
-                                <!-- МВО (Выбор ответа) -->
+                                <!-- МВО (Выбор ответа - Крупные зоны клика) -->
                                 <template x-if="task.type === 'МВО'">
-                                    <div class="space-y-2 pl-1 pt-1">
+                                    <div class="space-y-2 pt-1">
                                         <template x-for="(opt, oIndex) in task.options">
-                                            <label class="flex items-center space-x-3 p-2 rounded-lg border border-slate-100 hover:bg-slate-50 cursor-pointer text-sm text-slate-700">
+                                            <label class="flex items-center space-x-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 active:bg-indigo-50 cursor-pointer text-xs sm:text-sm text-slate-700 transition">
                                                 <input type="radio" :name="'student_task_' + index" :value="opt" x-model="studentAnswers[index]" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
-                                                <span x-text="opt"></span>
+                                                <span class="leading-tight" x-text="opt"></span>
                                             </label>
                                         </template>
                                     </div>
                                 </template>
 
-                                <!-- УО (Сопоставление через ВЫПАДАЮЩИЙ СПИСОК / DROPDOWN) -->
+                                <!-- УО (Сопоставление - Адаптированный Выпадающий список) -->
                                 <template x-if="task.type === 'УО'">
                                     <div class="space-y-3 pt-1">
-                                        <p class="text-xs text-slate-500 font-medium mb-1">Выберите соответствующий вариант из выпадающего списка:</p>
+                                        <p class="text-[11px] sm:text-xs text-slate-500 font-medium">Выберите ответ для каждого пункта:</p>
                                         <template x-for="(pair, pIndex) in task.pairs" :key="pIndex">
-                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
-                                                <span class="font-medium text-slate-800 text-xs sm:text-sm" x-text="pair.left"></span>
+                                            <div class="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                                <span class="font-medium text-slate-800 text-xs sm:text-sm leading-snug" x-text="pair.left"></span>
                                                 <select x-model="studentAnswers[index + '_' + pIndex]" 
-                                                        class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-700 shadow-sm cursor-pointer">
+                                                        class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-xs sm:text-sm bg-white focus:ring-2 focus:ring-indigo-500 text-slate-800 font-medium shadow-sm cursor-pointer">
                                                     <option value="">-- Выберите вариант --</option>
                                                     <template x-for="(opt, oIndex) in getPairOptions(task)" :key="oIndex">
                                                         <option :value="opt" x-text="opt"></option>
@@ -459,25 +419,25 @@
                                 <!-- УП (Последовательность) -->
                                 <template x-if="task.type === 'УП'">
                                     <div class="space-y-2 pt-1">
-                                        <p class="text-xs text-slate-500">Укажите порядок номеров через запятую (напр: 1, 3, 2, 4):</p>
-                                        <input type="text" x-model="studentAnswers[index]" placeholder="Например: 1, 3, 2, 4" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50/50 focus:ring-2 focus:ring-indigo-500">
+                                        <p class="text-xs text-slate-500">Порядок номеров через запятую (напр: 1, 3, 2, 4):</p>
+                                        <input type="text" x-model="studentAnswers[index]" placeholder="Например: 1, 3, 2, 4" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-base sm:text-sm bg-slate-50/50 focus:ring-2 focus:ring-indigo-500">
                                     </div>
                                 </template>
 
                                 <!-- КО / РО / КВО / КЗ -->
                                 <template x-if="['КО', 'РО', 'КВО', 'КЗ'].includes(task.type)">
                                     <div class="pt-1">
-                                        <textarea x-model="studentAnswers[index]" rows="3" placeholder="Введите ваш развернутый или качественный ответ..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50/50"></textarea>
+                                        <textarea x-model="studentAnswers[index]" rows="3" placeholder="Введите ваш развернутый ответ..." class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-base sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50/50"></textarea>
                                     </div>
                                 </template>
                             </div>
                         </template>
                     </div>
 
-                    <!-- 5. В САМОМ НИЗУ: ДЕСКРИПТОРЫ -->
+                    <!-- 5. ДЕСКРИПТОРЫ -->
                     <template x-if="activeWorksheet.descriptors && activeWorksheet.descriptors.length">
-                        <div class="bg-slate-100 border border-slate-200 p-4 rounded-xl space-y-2 mt-8">
-                            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider font-mono">Дескрипторы (Критерии выполнения)</h4>
+                        <div class="bg-slate-100 border border-slate-200 p-3.5 sm:p-4 rounded-xl space-y-1.5 mt-6">
+                            <h4 class="text-[10px] sm:text-xs font-bold text-slate-800 uppercase tracking-wider font-mono">Дескрипторы</h4>
                             <ul class="list-disc list-inside text-xs text-slate-600 space-y-1">
                                 <template x-for="desc in activeWorksheet.descriptors">
                                     <li x-text="desc"></li>
@@ -487,7 +447,7 @@
                     </template>
 
                     <!-- КНОПКА ОТПРАВКИ -->
-                    <button @click="submitWorksheet()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 rounded-xl text-sm transition shadow-md flex items-center justify-center space-x-2">
+                    <button @click="submitWorksheet()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold py-4 sm:py-3.5 rounded-xl text-sm sm:text-base transition shadow-md flex items-center justify-center space-x-2">
                         <span>🚀 Отправить работу учителю</span>
                     </button>
                 </div>
@@ -497,7 +457,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 py-4 mt-auto no-print text-center text-xs text-slate-500">
+    <footer class="bg-white border-t border-slate-200 py-3 mt-auto no-print text-center text-[11px] text-slate-500">
         RABOlab Physics Educational Ecosystem
     </footer>
 
@@ -550,6 +510,23 @@
                         return task.pairs.map(p => p.right).filter(Boolean);
                     }
                     return ['А', 'Б', 'В', 'Г'];
+                },
+
+                renderQrCode(text) {
+                    this.$nextTick(() => {
+                        const qrContainer = document.getElementById("qrcode");
+                        if (qrContainer) {
+                            qrContainer.innerHTML = "";
+                            new QRCode(qrContainer, {
+                                text: text,
+                                width: 160,
+                                height: 160,
+                                colorDark: "#1e1b4b",
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel.L
+                            });
+                        }
+                    });
                 },
 
                 saveSettings() {
@@ -618,6 +595,8 @@
                         const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(this.worksheet));
                         this.studentShareUrl = window.location.origin + window.location.pathname + '?ws=' + compressed;
 
+                        this.renderQrCode(this.studentShareUrl);
+
                     } catch (error) {
                         console.error(error);
                         alert(`Ошибка генерации: ${error.message}`);
@@ -653,7 +632,6 @@
 
                         formattedAnswers.push(ans);
 
-                        // --- ТОЧНАЯ ИИ-ОЦЕНКА ОБОСНОВАННОГО БАЛЛА ---
                         let taskScore = 0;
                         const cleanAns = ans.trim().toLowerCase();
                         const cleanCorrect = (task.correctAnswer || '').trim().toLowerCase();
@@ -661,7 +639,6 @@
                         if (!cleanAns || cleanAns.includes('не выбрано')) {
                             taskScore = 0;
                         } else if (task.type === 'МВО') {
-                            // Извлекаем букву (например, 'А' из 'А) ...')
                             const getOptionLetter = (str) => {
                                 const m = str.match(/^([а-гa-dА-ГA-D])[\)\.]/i);
                                 return m ? m[1].toLowerCase() : str.toLowerCase();
@@ -672,7 +649,7 @@
                             if (ansLetter === corrLetter || cleanAns === cleanCorrect) {
                                 taskScore = Number(task.score) || 0;
                             } else {
-                                taskScore = 0; // Неверный выбор = 0 баллов
+                                taskScore = 0;
                             }
                         } else if (task.type === 'УП') {
                             const normAns = cleanAns.replace(/[^0-9]/g, '');
@@ -685,29 +662,41 @@
                         } else if (task.type === 'УО') {
                             let correctPairsCount = 0;
                             const totalPairs = (task.pairs || []).length || 1;
-                            
+
                             (task.pairs || []).forEach((p, pIdx) => {
-                                const selectedVal = (this.studentAnswers[idx + '_' + pIdx] || '').trim().toLowerCase();
-                                if (selectedVal && cleanCorrect.includes(selectedVal.substring(0, 3))) {
+                                const selectedVal = (this.studentAnswers[idx + '_' + pIdx] || '').trim();
+                                if (!selectedVal || selectedVal === 'не выбрано') return;
+
+                                const letterMatch = selectedVal.match(/^([А-ЯA-Zа-яa-z1-9])[\)\.\s-]/i) || selectedVal.match(/([А-ЯA-Zа-яa-z])/i);
+                                const studentLetter = letterMatch ? letterMatch[1].toUpperCase() : '';
+
+                                const pairNum = pIdx + 1;
+                                const cleanCorrUpper = (task.correctAnswer || '').toUpperCase();
+                                
+                                const pairRegex = new RegExp(pairNum + '\\s*[-:\\.]?\\s*([А-ЯA-Z])', 'i');
+                                const corrMatch = cleanCorrUpper.match(pairRegex);
+
+                                if (corrMatch && studentLetter && corrMatch[1] === studentLetter) {
+                                    correctPairsCount++;
+                                } else if (selectedVal && cleanCorrUpper.includes(selectedVal.toUpperCase())) {
                                     correctPairsCount++;
                                 }
                             });
 
                             if (correctPairsCount > 0) {
-                                taskScore = Math.round((correctPairsCount / totalPairs) * task.score);
+                                taskScore = Math.round((correctPairsCount / totalPairs) * Number(task.score));
                             } else {
                                 taskScore = 0;
                             }
                         } else {
-                            // Открытые/качественные вопросы (КО, РО, КЗ) - проверка ключевых слов
                             const wordsCorr = cleanCorrect.split(/\s+/).filter(w => w.length > 3);
                             if (wordsCorr.length > 0) {
                                 const matched = wordsCorr.filter(w => cleanAns.includes(w));
                                 const ratio = matched.length / wordsCorr.length;
-                                if (ratio >= 0.4) {
+                                if (ratio >= 0.35) {
                                     taskScore = Number(task.score) || 0;
                                 } else if (ratio >= 0.15) {
-                                    taskScore = Math.max(1, Math.floor(task.score * 0.5));
+                                    taskScore = Math.max(1, Math.floor(Number(task.score) * 0.5));
                                 } else {
                                     taskScore = 0;
                                 }
