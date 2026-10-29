@@ -154,7 +154,7 @@
                         <button @click="copyLink()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 rounded text-xs transition">📋 Копировать ссылку</button>
                         
                         <div class="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-slate-200">
-                            <div id="qrcode" class="p-2 bg-white rounded border border-slate-100 shadow-sm"></div>
+                            <div id="qrcode" class="p-2 bg-white rounded border border-slate-100 shadow-sm flex items-center justify-center min-w-[160px] min-h-[160px]"></div>
                             <span class="text-[10px] text-slate-400 mt-2">Отсканируйте камерой телефона</span>
                         </div>
                     </div>
@@ -498,7 +498,6 @@
                     return window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 },
 
-                // Вспомогательная функция для безопасного превращения объектов и массивов в тексты
                 safeString(val) {
                     if (val === null || val === undefined) return '';
                     if (typeof val === 'string') return val;
@@ -516,7 +515,6 @@
                     return String(val);
                 },
 
-                // Полная очистка и нормализация JSON от ИИ
                 normalizeWorksheet(ws) {
                     if (!ws) return null;
 
@@ -625,8 +623,13 @@
                 renderQrCode(text) {
                     this.$nextTick(() => {
                         const qrContainer = document.getElementById("qrcode");
-                        if (qrContainer) {
-                            qrContainer.innerHTML = "";
+                        if (!qrContainer) return;
+                        qrContainer.innerHTML = "";
+
+                        try {
+                            // Попытка локальной генерации
+                            if (typeof QRCode === 'undefined') throw new Error("QRCode JS script not loaded");
+                            
                             new QRCode(qrContainer, {
                                 text: text,
                                 width: 160,
@@ -635,6 +638,14 @@
                                 colorLight: "#ffffff",
                                 correctLevel: QRCode.CorrectLevel.L
                             });
+                        } catch (e) {
+                            console.warn("Клиентская библиотека не смогла сгенерировать QR (слишком длинный URL), подключаем надежный векторный API:", e);
+                            // Гарантированный резервный вариант (Fallback): онлайн API векторного QR-кода
+                            const img = document.createElement("img");
+                            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(text)}&color=1e1b4b`;
+                            img.alt = "QR Code";
+                            img.className = "w-40 h-40 object-contain rounded border border-slate-100";
+                            qrContainer.appendChild(img);
                         }
                     });
                 },
